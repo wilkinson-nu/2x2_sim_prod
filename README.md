@@ -91,8 +91,13 @@ wget https://portal.nersc.gov/project/dune/data/2x2/simulation/edepsim/NuMI_FHC_
 
 ## Analyzing the edep-sim output files
 
+### Using the edep-sim event display
 As a first step, it can be useful to visualize what is going on in an event. For just such a purpose, edep-sim provides an event display which can be used to view an edep-sim output file:
 ```
 singularity exec images/2x2_sim_prod.sif edep-disp -s volLArActive -s DetectorlvTower -s volCryostatInnerBath_OuterTubTorusInnerTub <input_file>
 ```
 The slightly cryptic -s arguments tell edep-sim which parts of the detector geometry to show. To keep rendering times short, only the larger volumes are shown, to provide a basic sketch of the detector layout with respect to the hits. Note that hits in all volumes are drawn. Basic event display functions are pretty self-explanatory, but for further details on what you can do with it, look at the edep-sim documentation.
+
+### Running a simple script to calculate containment
+The structure of the edep-sim output file is described here: https://github.com/ClarkMcGrew/edep-sim/blob/master/io/TG4Event.h
+
