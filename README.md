@@ -54,6 +54,33 @@ This will open a new shell inside the container. Note that you cannot modify the
 ## Generating/obtaining simulation files
 This section describes how to generate events in a complex geometry using GENIE and simulating their energy deposition using GEANT4 wrapped in edep-sim. Both GENIE and edep-sim have extensive documentation of their own and anything not covered in this "quickstart guide" can probably be found there.
 
+### Generating files
+This step is primarily included here for documentation purposes, and to allow users of the files to understand how the files are generated, and the inputs/assumptions required.
+
+An example script detailing the technical steps is given in `example_generation_script.sh`. This relies on a number of inputs:
+- A .gdml file describing the geometry to be simulated (this example is for the 2x2+MINERvA, but it could be anything)
+- A description of the incoming neutrino beam 
+  - Here, "dk2nu" files are used (see https://github.com/DUNE/fnal-nutools/tree/master/dk2nu), but GENIE provides support for many other inputs. Note that for non-FNAL applications, one might need to use `gevgen` instead of `gevgen_fnal` (see the GENIE docs)
+  - These files are produced with `G4NuMI`, and are common for all experiments in the NuMI beamline (e.g., NOvA and MINERvA could use the same files)
+  - The example used here `g4numiv6_minervame_me000z200i_0_0001.dk2nu` was generated for NOvA. It is downloaded from NERSC in the script because it is too large for github 🚱
+- `GNuMIFlux.xml` describes the relationship between the co-ordinate system used for the detector geometry and the beamline (ued to make the dk2nu file). Additionally, it defines a "region of interest" to avoid simulating neutrinos which don't pass anywhere near the geometry
+- A set of GENIE splines in `G18_10a_02_11a_FNALsmall.xml`. These are very slow to calculate, and are used to make event generation significantly more efficient. These are also downloaded from NERSC in the script because they are too large for github 🦖
+- A file setting various parameters to use in the GEANT4 simulation: `2x2_beam.mac`
+
+The basic generation steps are:
+- Calculate the maximum interaction probability for a neutrino passing through this detector -- GENIE's `gmxpl` tool.
+  - This step is rather slow, but can be re-used as long as the geometry doesn't change
+- Generate primary vertices throughout the detector geometry -- GENIE's `gevgen_fnal` tool
+- Convert the GENIE (GHEP) output to the "rootracker" format required by edep-sim -- GENIE's `gntpc` tool
+- "Cherrypick" (select) events where the primary (GENIE) vertex is within the 2x2 active volume -- custom `cherrypicker.py` script
+  - This is not a necessary step, but the subsequent steps are more computationally intensive, so it's advantageous to focus on the events we are interested in for most truth-level studies
+  - (Cuts the number of events by a factor of 10)
+- Run GEANT4 through edep-sim to simulate the energy depositions and re-interactions of particles produced by the GENIE vertices, as they propagate through the geometry provided.
+  - Note that only those volumes inside the geometry identified with a `SensDet` tag have energy deposits saved
+
+Further comments are given in the example generation script.
+
+### Obtaining pre-generated files
 Note that this step is also unnecessary, and a large number of files made in the same way as the example provided here are provided at: https://portal.nersc.gov/project/dune/data/2x2/simulation/edepsim/
 
 E.g., to get a single FHC file, generated in the same way as described in the example script:
