@@ -9,7 +9,7 @@ Instructions for installing singularity on Linux can be found here: https://syla
 
 I tested the build recipes on Ubuntu 22.04 with singularity version 3.10.2, although any version newer than 3.6.3 should be fine, and it shouldn't depend on the Linux OS.
 
-There are instructions on how to run singularity on Mac/Windows, with the added hassle of doing it through a VM. Alternatively, there are docker images with the same contents available (see ` Obtaining ready-made containers`). Note, however, that no instructions for running docker containers with the docker runtime environment will be provided... life is far too short. But in principle you should be able to run the same commands in the docker container once you deal with any directory mounting/X11 issues.
+There are instructions on how to run singularity on Mac/Windows, with the added hassle of doing it through a VM. Alternatively, there are docker images with the same contents available (see "Obtaining ready-made containers"). Note, however, that no instructions for running docker containers with the docker runtime environment will be provided... life is far too short. But in principle you should be able to run the same commands in the docker container once you deal with any directory mounting/X11 issues.
 
 #### Building singularity containers
 Singularity containers are built with a command like:
@@ -66,6 +66,6 @@ wget https://portal.nersc.gov/project/dune/data/2x2/simulation/edepsim/NuMI_FHC_
 
 As a first step, it can be useful to visualize what is going on in an event. For just such a purpose, edep-sim provides an event display which can be used to view an edep-sim output file:
 ```
-singularity exec 2x2_sim_prod.sif edep-disp -s volLArActive -s DetectorlvTower -s volCryostatInnerBath_OuterTubTorusInnerTub <input_file>
+singularity exec images/2x2_sim_prod.sif edep-disp -s volLArActive -s DetectorlvTower -s volCryostatInnerBath_OuterTubTorusInnerTub <input_file>
 ```
 The slightly cryptic -s arguments tell edep-sim which parts of the detector geometry to show. To keep rendering times short, only the larger volumes are shown, to provide a basic sketch of the detector layout with respect to the hits. Note that hits in all volumes are drawn. Basic event display functions are pretty self-explanatory, but for further details on what you can do with it, look at the edep-sim documentation.
