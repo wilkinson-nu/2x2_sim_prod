@@ -1,0 +1,8 @@
+## Ignore all .sif files
+*.sif
+
+## Ignore all .dk2nu files
+*.dk2nu
+
+## Ignore all .root files
+*.root
