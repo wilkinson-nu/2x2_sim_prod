@@ -67,6 +67,12 @@ An example script detailing the technical steps is given in `example_generation_
 - A set of GENIE splines in `G18_10a_02_11a_FNALsmall.xml`. These are very slow to calculate, and are used to make event generation significantly more efficient. These are also downloaded from NERSC in the script because they are too large for github 🦖
 - A file setting various parameters to use in the GEANT4 simulation: `2x2_beam.mac`
 
+As an aside, I included an example geometry viewing script so it is easy to inspect the geometry (with ROOT) that is being used here. The script is largely borrowed from Clarence Wret, but I'm sure he won't mind it being shared.
+```
+singularity exec images/2x2_sim_prod.sif root -ql 'inspectgeom.C("inputs/Merged2x2MINERvA_noRock.gdml")'
+```
+(Note that this shouldn't depend on anything except ROOT, so there's no need to use the version in the container)
+
 The basic generation steps are:
 - Calculate the maximum interaction probability for a neutrino passing through this detector -- GENIE's `gmxpl` tool.
   - This step is rather slow, but can be re-used as long as the geometry doesn't change
@@ -91,8 +97,18 @@ wget https://portal.nersc.gov/project/dune/data/2x2/simulation/edepsim/NuMI_FHC_
 
 ## Analyzing the edep-sim output files
 
+### Using the edep-sim event display
 As a first step, it can be useful to visualize what is going on in an event. For just such a purpose, edep-sim provides an event display which can be used to view an edep-sim output file:
 ```
 singularity exec images/2x2_sim_prod.sif edep-disp -s volLArActive -s DetectorlvTower -s volCryostatInnerBath_OuterTubTorusInnerTub <input_file>
 ```
 The slightly cryptic -s arguments tell edep-sim which parts of the detector geometry to show. To keep rendering times short, only the larger volumes are shown, to provide a basic sketch of the detector layout with respect to the hits. Note that hits in all volumes are drawn. Basic event display functions are pretty self-explanatory, but for further details on what you can do with it, look at the edep-sim documentation.
+
+### Running a simple script to calculate containment
+The structure of the edep-sim output file is described here: https://github.com/ClarkMcGrew/edep-sim/blob/master/io/TG4Event.h
+
+An example script for analyzing the edep-sim output is given: `example_analysis.py`. Which can be run:
+```
+singularity exec images/2x2_sim_prod.sif python3 example_analysis.py <input_edepsim_file.root>
+```
+Note that whilst you can get some mileage out of looking at the edep-sim output file with a TBrowser, you will run into issues because the entries are saved in custom `TG4Event` objects. The (Py)ROOT version in the container picks up on the necessary objects from edep-sim to understand these.
