@@ -6,3 +6,9 @@
 
 ## Ignore all .root files
 *.root
+
+## Ignore specific files which are generated in the scripts, but don't need to be saved to the repo
+inputs/Merged2x2MINERvA_noRock_maxpath.xml
+inputs/G18_10a_02_11a_FNALsmall.xml
+example_generation_script.log
+genie-mcjob-0.status
