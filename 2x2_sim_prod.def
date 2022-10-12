@@ -1,0 +1,152 @@
+Bootstrap: localimage
+From: images/root_v6.14.06_pythia6.sif
+
+%files
+
+    ## Temporary edep-sim patch
+    images/EDepSimRootGeometryManager.patch /opt/generators
+
+%post
+
+    ## Update the compiler
+    set -e
+    source scl_source enable devtoolset-7 || true
+
+    ## Needed for G4:
+    yum -y install xerces-c xerces-c-devel
+
+    ## Needed to make X11 work properly for edep-disp
+    yum -y install mesa-dri-drivers
+
+    ## Needed to run the ROOT --> h5 script
+    python3 -m pip install numpy
+    python3 -m pip install fire
+    python3 -m pip install h5py
+    
+    ## This should be set as desired!
+    export NCORES=2
+    
+    ## Set up paths for things already in the container
+    export GEN_DIR=/opt/generators
+    export ROOTSYS=/opt/generators/root/install
+    export PATH=$ROOTSYS/bin:$PATH
+    export LD_LIBRARY_PATH=$ROOTSYS/lib:/usr/lib64:$LD_LIBRARY_PATH
+    export PYTHONPATH=${ROOTSYS}/lib:${PYTHONPATH}
+
+    ## GENIE dependencies
+
+    ## Now LHAPDF (old version)
+    mkdir ${GEN_DIR}/LHAPDF
+    cd ${GEN_DIR}/LHAPDF
+    wget https://lhapdf.hepforge.org/downloads/old/lhapdf-5.9.1.tar.gz
+    tar xzf lhapdf-5.9.1.tar.gz
+    rm lhapdf-5.9.1.tar.gz
+    mkdir lhapdf-5.9.1_build
+    cd lhapdf-5.9.1
+    ./configure --prefix=${PWD}/../lhapdf-5.9.1_build
+    make -j ${NCORES} && make install
+
+    ## Get the GENIE code, v3.00.06 here
+    export GENIE_VERSION=R-3_00_06
+    mkdir -p ${GEN_DIR}/GENIE
+    git clone -b ${GENIE_VERSION} https://github.com/GENIE-MC/Generator.git ${GEN_DIR}/GENIE/${GENIE_VERSION}
+    export GENIE=${GEN_DIR}/GENIE/${GENIE_VERSION}
+    cd ${GENIE}
+    sed -i 's/g77/gfortran/g' src/make/Make.include
+
+    ## Setup all the required paths
+    export LHAPATH=${GEN_DIR}/LHAPDF/lhapdf-5.9.1_build/include/LHAPDF
+    export PYTHIA6=${GEN_DIR}/root/lib
+    export GSL_LIB=/usr/lib64
+    export GSL_INC=/usr/include
+    export LHAPDF_INC=${GEN_DIR}/LHAPDF/lhapdf-5.9.1_build/include
+    export LHAPDF_LIB=${GEN_DIR}/LHAPDF/lhapdf-5.9.1_build/lib
+    export LIBXML2_INC=/usr/include/libxml2
+    export LIBXML2_LIB=/usr/lib64
+
+    ## Need to copy a file from GENIE into LHAPDF... pretty mad!
+    cp ${GENIE}/data/evgen/pdfs/GRV98lo_patched.LHgrid ${LHAPATH}/.
+
+    ## Configure GENIE
+    ./configure --enable-fnal \
+		--with-pythia6-lib=${PYTHIA6} \
+		--with-lhapdf-inc=$LHAPDF_INC \
+		--with-lhapdf-lib=$LHAPDF_LIB \
+		--with-libxml2-inc=$LIBXML2_INC \
+		--with-libxml2-lib=$LIBXML2_LIB 
+
+    make -j ${NCORES}
+    make install
+
+    export PATH=$GENIE/bin:${PATH}
+    export LD_LIBRARY_PATH=$LIBXML2_LIB:$LHAPDF_LIB:$PYTHIA6:$GENIE/lib:$LD_LIBRARY_PATH
+
+    ## Shut GENIE up when it runs
+    cp ${GENIE}/config/Messenger_whisper.xml ${GENIE}/config/Messenger.xml
+
+    ## Have to mess around with the file to actually shut it up though...
+    sed -i '$ d' ${GENIE}/config/Messenger.xml
+    echo '  <priority msgstream="ResonanceDecay">      FATAL </priority>' >> ${GENIE}/config/Messenger.xml
+    echo '  <priority msgstream="Pythia6Decay">        FATAL </priority>' >> ${GENIE}/config/Messenger.xml
+    echo '  <priority msgstream="INukeNucleonCorr">    FATAL </priority>' >> ${GENIE}/config/Messenger.xml
+    echo '  <priority msgstream="gevgen_fnal">         FATAL </priority>' >> ${GENIE}/config/Messenger.xml
+    echo '</messenger_config>' >> ${GENIE}/config/Messenger.xml
+
+    ## Get DK2NU sorted
+    cd ${GEN_DIR}
+    git clone https://github.com/NuSoftHEP/dk2nu.git
+    export DK2NU=${GEN_DIR}/dk2nu
+    export LIBXML2INC=/usr/include/libxml2
+    cd ${DK2NU}
+    make all
+
+    ## Get the G4 source code
+    cd ${GEN_DIR}
+    git clone -b v10.7.2 https://github.com/Geant4/geant4.git geant4
+    mkdir geant4/install geant4/build
+    cd geant4/build
+    cmake -DCMAKE_INSTALL_PREFIX=../install \
+      -DGEANT4_INSTALL_DATA=ON \
+      -DGEANT4_USE_GDML=ON ../
+    make -j${NCORES} && make install
+
+    source ${GEN_DIR}/geant4/install/bin/geant4.sh
+
+    ## Now edep-sim... this puts it in /usr/local, which is fine I guess?
+    cd ${GEN_DIR}    
+    git clone https://github.com/ClarkMcGrew/edep-sim.git
+    
+    ## Add patch
+    patch edep-sim/src/EDepSimRootGeometryManager.cc /opt/generators/EDepSimRootGeometryManager.patch
+
+    cd ${GEN_DIR}/edep-sim/build
+    mkdir ../install
+    cmake -DCMAKE_INSTALL_PREFIX=../install ../
+    make -j${NCORES} && make install
+
+%environment
+
+    export GEN_DIR=/opt/generators
+    export GENIE=${GEN_DIR}/GENIE/R-3_00_06
+    export LHAPATH=${GEN_DIR}/LHAPDF/lhapdf-5.9.1_build/include/LHAPDF
+    export PYTHIA6=${GEN_DIR}/root/lib
+    export GSL_LIB=/usr/lib64
+    export GSL_INC=/usr/include
+    export LHAPDF_INC=${GEN_DIR}/LHAPDF/lhapdf-5.9.1_build/include
+    export LHAPDF_LIB=${GEN_DIR}/LHAPDF/lhapdf-5.9.1_build/lib
+    export LIBXML2_INC=/usr/include/libxml2
+    export LIBXML2_LIB=/usr/lib64
+
+    export PATH=$GENIE/bin:$PATH
+    export LD_LIBRARY_PATH=$LIBXML2_LIB:$LHAPDF_LIB:$PYTHIA6:$GENIE/lib:$LD_LIBRARY_PATH
+    
+    export GXMLPATH=${GENIE}/genie_xsec
+    export DK2NU=${GEN_DIR}/dk2nu
+    export LD_LIBRARY_PATH=${DK2NU}/lib:${LD_LIBRARY_PATH}
+
+    ## Use G4's script because it sets so many variables
+    cd ${GEN_DIR}/geant4/install/bin; source geant4.sh; cd -
+
+    export EDEPSIM=${GEN_DIR}/edep-sim/install
+    export PATH=${EDEPSIM}/bin:${PATH}
+    export LD_LIBRARY_PATH=${EDEPSIM}/lib:${LD_LIBRARY_PATH}

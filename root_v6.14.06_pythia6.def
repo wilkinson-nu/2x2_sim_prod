@@ -1,0 +1,147 @@
+Bootstrap: library
+From: centos:7
+
+%files
+    images/thisroot6.sh /opt
+    
+%post
+
+    yum -y install wget
+    yum -y install dnf-plugins-core
+    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    yum -y update
+    yum repolist
+
+    yum -y install centos-release-scl
+    yum -y install devtoolset-7
+    scl enable devtoolset-7 bash
+
+    BUILD_SW="gcc gcc-c++ gcc-gfortran cmake3 make imake autoconf automake pkgconfig libtool"
+    RETREVAL_SW="git wget subversion openssh-clients openssl-devel"
+
+    X11_UTILS="xorg-x11-utils"
+    X11_LIBS="libXt-devel libXpm-devel libXft-devel libXext-devel"
+
+    GRAPHICS_LIBS="mesa-libGLU-devel mesa-libGLw glew-devel motif-devel libpng-devel libjpeg-turbo-devel ftgl-devel"
+
+    DEVEL_LIBS="libxml2-devel gmp-devel gsl-devel log4cpp-devel bzip2-devel pcre-devel \
+    		xz-devel zlib-devel freetype-devel fftw-devel blas-devel lapack-devel"
+
+    MISC_SW="vim nano gdb csh tcsh ed quota python-devel patch emacs"
+
+    yum -y install \
+    	   ${BUILD_SW}\
+	   ${RETREVAL_SW}\
+	   ${X11_UTILS}\
+	   ${X11_LIBS}\
+	   ${GRAPHICS_LIBS}\
+	   ${DEVEL_LIBS}\
+	   ${MISC_SW}
+
+    yum -y install man
+
+    ## Required by the packages used downstream (some gotchas here)
+    yum -y install man
+    yum -y install which
+    yum -y install ed
+    yum -y install automake
+    yum -y install perl
+    yum -y install libXt-devel
+    yum -y install openmotif-devel
+    yum -y install csh
+
+    ## Need to get a new cmake version for ROOT6
+    ln -s /usr/bin/cmake3 /usr/bin/cmake
+
+    ## For my sanity
+    yum -y install emacs
+
+    ## Update the compiler
+    set -e
+    source scl_source enable devtoolset-7 || true
+
+    ## Use 2 cores when building
+    export NCORES=2
+    
+    ## Create working directory
+    export GEN_DIR=/opt/generators
+    mkdir -p $GEN_DIR
+    cd $GEN_DIR
+
+    mv /opt/thisroot6.sh ${GEN_DIR}/.
+
+    ## Get a copy of ROOT
+    git clone -b v6-14-06 --depth 1 --single-branch https://github.com/root-project/root.git root
+
+    ## Get PYTHIA6 (with specific placement for NuWro)
+    wget --no-check-certificate http://root.cern.ch/download/pythia6.tar.gz
+    tar -xzvf pythia6.tar.gz
+    rm pythia6.tar.gz
+    wget --no-check-certificate https://pythia.org/download/pythia6/pythia6428.f
+    mv pythia6428.f pythia6/pythia6428.f
+    rm pythia6/pythia6416.f
+
+    ## Build PYTHIA6 and copy to where NuWro expects it
+    cd pythia6
+    ./makePythia6.linuxx8664
+    mkdir ${GEN_DIR}/root/lib
+    cp ${GEN_DIR}/pythia6/libPythia6.so ${GEN_DIR}/root/lib/.
+
+    ## To avoid ROOT builtins:
+    yum -y install gl2ps-devel				
+    yum -y install xxhash-devel
+    yum -y install lz4-devel
+
+    ## Needed to install with python3
+    yum -y install python3-devel
+    
+    export VERBOSE=1
+    
+    ## Now build root
+    mkdir ${GEN_DIR}/root/install
+    cd ${GEN_DIR}/root/install
+    cmake -DPYTHIA6_LIBRARY=${GEN_DIR}/root/lib/libPythia6.so \
+    	  -DCMAKE_CXX_STANDARD=14 \
+	  -Dcxx11=OFF \
+	  -Dcxx14=ON \
+	  -Dpythia6=ON \
+	  -Dminuit2=ON \
+	  -Dmathmore=ON \
+	  -Ddavix=OFF \
+    	  -Dfitsio=OFF \
+	  -Dgfal=OFF \
+	  -Dcastor=OFF \
+	  -Dclad=OFF \
+	  -Dhttp=OFF \
+	  -Droot7=OFF \
+	  -Dwebgui=OFF \
+	  -Dxrootd=OFF \
+	  -Dmlp=OFF \
+	  -Dmysql=OFF \
+	  -Doracle=OFF \
+	  -Dpgsql=OFF \
+	  -Droofit=OFF \
+	  -Dspectrum=OFF \
+	  -Dsqlite=OFF \
+	  -Ddataframe=OFF \
+	  -Dimt=OFF \
+	  -Dtmva=OFF \
+	  -Dtmva-cpu=OFF \
+	  -Dtmva-pymva=OFF \
+	  -Dssl=OFF \
+	  -Dcudnn=OFF \
+	  -Dexceptions=OFF \
+	  -Dgdml=ON \
+	  -Dbuiltin_clang=ON \
+	  -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+	  -Dpython3=ON \
+	  ../
+    make -j ${NCORES}
+
+    mv /opt/generators/thisroot6.sh /opt/generators/root/install/bin/thisroot.sh
+
+%environment
+    export SINGULARITY_SHELL=/bin/bash
+    export GEN_DIR=/opt/generators
+    export ROOTSYS=${GEN_DIR}/root/install
+    cd ${ROOTSYS}/bin; source thisroot.sh; cd -
