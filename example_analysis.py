@@ -362,21 +362,21 @@ def test_containment(infilelist):
     ROOT.gPad.SetBottomMargin(0.14)
     ROOT.gPad.RedrawAxis()
     ROOT.gPad.Update()
-    can .SaveAs("example_ccinc_q2.png")
+    can .SaveAs("plots/example_ccinc_q2.png")
     
     q2_cont .Draw()
     q2_cont .SetLineWidth(3)
     q2_cont .SetMinimum(0)
     q2_cont .SetLineColor(9000)
     ROOT.gPad.Update()
-    can .SaveAs("example_ccinc_q2_2x2cont.png")
+    can .SaveAs("plots/example_ccinc_q2_2x2cont.png")
     
     pi_energy_smearing.Draw("COLZ")
     pi_energy_smearing.GetZaxis().RotateTitle(1)
     ROOT.gPad.SetRightMargin(0.18)
     ROOT.gPad.RedrawAxis()
     ROOT.gPad.Update()
-    can .SaveAs("example_pi_erec_2x2cont.png")
+    can .SaveAs("plots/example_pi_erec_2x2cont.png")
     
     return
 
