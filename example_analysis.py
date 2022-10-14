@@ -276,7 +276,7 @@ def test_containment(infilelist):
 
     pi_energy_smearing = ROOT.TH2D("pi_energy_smearing",
                                    "pi_energy_smearing;p_{#pi}^{true} (GeV); p_{#pi}^{reco} (GeV); N. events",
-                                   20, 0, 0.5 20, 0, 0.5)
+                                   20, 0, 0.5, 20, 0, 0.5)
     
     ## Loop over events
     print("Looping over", nevts, "events")
