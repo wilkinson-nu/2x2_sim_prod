@@ -24,12 +24,22 @@ Note that there are two .def files, the first containers ROOT and some other bas
 
 If you want to, you can also just take the commands in the .def files as a basis for building software locally. Or port it to a different container build system.
 
-#### Obtaining ready-made containers
+#### Obtaining and running ready-made containers
 The simplest way to obtain the containers is through NERSC, you can download the (4GB) final container with:
 ```
 wget https://portal.nersc.gov/project/dune/data/2x2/images/2x2_sim_prod.sif
 ```
 (The intermediate ROOT container is in the same directory)
+
+Singularity is pretty easy to use, if you want to run something in the container, you can simply run it like:
+```
+singularity exec </path/to/my_container.sif> <The same command you would have given locally>
+```
+Additionally, you can open up the container and poke around in it with:
+```
+singularity shell </path/to/my_container.sif>
+```
+This will open a new shell inside the container. Note that you cannot modify the contents of the container, **but** you can modify your host system!
 
 Alternatively, if you want to use docker containers, you can pull them down from dockerhub: wilkinsonnu/nuisance_project:2x2_sim_prod
 
@@ -43,18 +53,6 @@ Finally, if you have access to NERSC machines, you can run the docker containers
 ```
 shifter -V ${PWD}:/output --entrypoint --image=docker:wilkinsonnu/nuisance_project:2x2_sim_prod <your command>
 ```
-
-
-#### Running singularity containers
-Singularity is pretty easy to use, if you want to run something in the container, you can simply run it like:
-```
-singularity exec </path/to/my_container.sif> <The same command you would have given locally>
-```
-Additionally, you can open up the container and poke around in it with:
-```
-singularity shell </path/to/my_container.sif>
-```
-This will open a new shell inside the container. Note that you cannot modify the contents of the container, **but** you can modify your host system!
 
 ## Generating/obtaining simulation files
 This section describes how to generate events in a complex geometry using GENIE and simulating their energy deposition using GEANT4 wrapped in edep-sim. Both GENIE and edep-sim have extensive documentation of their own and anything not covered in this "quickstart guide" can probably be found there.
