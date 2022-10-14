@@ -276,7 +276,7 @@ def test_containment(infilelist):
 
     pi_energy_smearing = ROOT.TH2D("pi_energy_smearing",
                                    "pi_energy_smearing;p_{#pi}^{true} (GeV); p_{#pi}^{reco} (GeV); N. events",
-                                   20, 0, 1, 20, 0, 1)
+                                   20, 0, 0.5 20, 0, 0.5)
     
     ## Loop over events
     print("Looping over", nevts, "events")
@@ -357,7 +357,7 @@ def test_containment(infilelist):
     q2_all .SetLineColor(9000)
     q2_all .SetLineWidth(3)
     ROOT.gPad.SetRightMargin(0.02)
-    ROOT.gPad.SetTopMargin(0.02)
+    ROOT.gPad.SetTopMargin(0.07)
     ROOT.gPad.SetLeftMargin(0.15)
     ROOT.gPad.SetBottomMargin(0.14)
     ROOT.gPad.RedrawAxis()
@@ -368,6 +368,7 @@ def test_containment(infilelist):
     q2_cont .SetLineWidth(3)
     q2_cont .SetMinimum(0)
     q2_cont .SetLineColor(9000)
+    ROOT.gPad.SetTopMargin(0.02)
     ROOT.gPad.Update()
     can .SaveAs("plots/example_ccinc_q2_2x2cont.png")
     
