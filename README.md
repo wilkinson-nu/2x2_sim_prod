@@ -39,6 +39,11 @@ singularity exec docker://wilkinsonnu/nuisance_project:2x2_sim_prod <your comman
 ```
 (It will cache the image so only the first such command would download the large file)
 
+Finally, if you have access to NERSC machines, you can run the docker containers, through shifter (an alternative container runtime environment) with:
+```
+shifter -V ${PWD}:/output --entrypoint --image=docker:wilkinsonnu/nuisance_project:2x2_sim_prod <your command>
+```
+
 
 #### Running singularity containers
 Singularity is pretty easy to use, if you want to run something in the container, you can simply run it like:
