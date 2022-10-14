@@ -123,5 +123,7 @@ The total number of events in the files passed to `example_analysis.py` is shown
 The fraction of CC-inclusive events contained is shown as a function of true Q<sup>2</sup> in `plots/example_ccinc_q2_2x2cont.png`.
 ![plots/example_ccinc_q2_2x2cont.png](plots/example_ccinc_q2_2x2cont.png)
 
-Finally, the relationship between the total energy deposited in the detector and true kinetic energy is shown for all charged pions in the CC-incusive sample in `plots/example_pi_erec_2x2cont.png`
+Finally, the relationship between the total energy deposited in the detector and true kinetic energy is shown for all charged pions in the CC-incusive sample in `plots/example_pi_erec_2x2cont.png`.
 ![plots/example_pi_erec_2x2cont.png](plots/example_pi_erec_2x2cont.png)
+
+Note that these examples are just chosen to use different parts of the edep-sim output (GENIE pass through, true info, energy deposits, etc...), rather than because they're particularly interesting.
