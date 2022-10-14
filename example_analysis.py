@@ -1,7 +1,7 @@
 ## Needs to have ROOT.TG4Event loaded to work
 import ROOT
 from ROOT import TLorentzVector
-import math
+from math import sqrt
 import sys
 from glob import glob
 
@@ -44,7 +44,6 @@ def is_2x2_contained(pos):
     if abs(pos[2]) > 670: return False
     return True
 
-
 ## We want to ignore all hits produced by neutrons or their daughters
 ## So, make a set of all true trajectories that are neutrons or their descendants 
 def get_neutron_and_daughter_ids(event):
@@ -84,12 +83,12 @@ def get_traj_ids_for_pdg(particles, pdgs):
 
     ## Loop over the truth trajectories
     ## Keep track of track ids if the PDG code is the one we desire
-    return [x.GetTrackId() for x in particles if x.GetPDGCode() in pdgs]    
+    return tuple(x.GetTrackId() for x in particles if x.GetPDGCode() in pdgs)
 
 
 ## Get the PrimaryParticles of a specific type
 def get_traj_for_pdg(particles, pdgs):
-    return [x for x in particles if x.GetPDGCode() in pdgs]
+    return tuple(x for x in particles if x.GetPDGCode() in pdgs)
 
 ## Determine if the muon in an event is "tagged"
 ## As they very rarely are contained, here we look for muons that punch through and exit downstream of MINERvA
@@ -98,8 +97,54 @@ def is_muon_tagged(event):
     
     ## Get the primary muon ID (muons require special treatment)
     muon_id = get_traj_ids_for_pdg(event.Primaries[0].Particles, [13, -13])
+
+    ## If there isn't a muon... this isn't CC, so default to True
+    ## (because who cares where the outgoing neutrino goes in an NC event)
+    if len(muon_id)==0: return True
+
+    ## MINERvA's maximum z value (mm)
+    ## This is very geometry specific
+    z_max = 3500
+
+    ## Radius of a cylinder that approximates MINERvA
+    ## (this is slightly smaller than a cylinder that would go through the "tips" of the MINERvA hexagon)
+    approx_rad = 1870
     
-    return 1
+    high_z = 0
+    
+    ## Loop over the detector segments (see description elsewhere in this file)
+    for seg in event.SegmentDetectors:
+        
+        ## Loop over the segments in the volume
+        nChunks = len(seg[1])
+        for n in range(nChunks):
+            
+            ## Get the primary id that is associated with this segment
+            par_contrib = seg[1][n].GetPrimaryId()
+
+            ## Only consider contributions that can be tracked back to muons
+            if par_contrib not in muon_id: continue
+
+            pos = seg[1][n].GetStop()
+
+            ## !!! This is a very coarse approximation !!!
+            ## Contained muons must leave hits (in air) that exceed the z-maximum of MINERvA
+            if pos[2] > z_max:
+                high_z += 1
+                continue
+            
+            ## They must also not exit out the side of MINERvA
+            ## Here MINERvA is very crudely approximated with a cylinder
+            ## If sqrt(x^2 + y*2) > the radius of that cylinder before the muon exits out the back, it's not tagged
+            ## (Take into account the fact the detector is shifted up 430 mm in y)
+            if sqrt(pos[0]*pos[0] + (pos[1]-430)*(pos[1]-430)) > approx_rad: return False
+
+    ## Check that the muon went past MINERvA
+    if not high_z: return False
+
+    ## Looks like the muon was "tagged"!
+    return True
+
 
 ## Determine if the hadronic side of an event is contained ***in the 2x2***
 ## Some assumptions here
@@ -179,6 +224,7 @@ def get_reco_energy(event, traj_id):
 
     return reco_energy
 
+
 ## Return the neutrino 4 momentum
 ## Note that this is only in the pass-through GENIE info, so uses a different tree
 ## (But that tree has the same number of entries)
@@ -237,8 +283,6 @@ def test_containment(infilelist):
     for evt in range(nevts):
 
         if evt%(int(nevts/10)) == 0 and evt != 0: print("Processed event:", evt)
-
-        if evt > 1000: break
         
         edep_tree.GetEntry(evt)
         groo_tree.GetEntry(evt)
@@ -249,7 +293,7 @@ def test_containment(infilelist):
         vertex = edep_tree.Event.Primaries[0]
 
         ## Get the list of pdgs in this event (can be used to classify the topology)
-        prim_pdg_list = [x.GetPDGCode() for x in vertex.Particles]
+        prim_pdg_list = tuple(x.GetPDGCode() for x in vertex.Particles)
 
         ## Is this event "signal"? If not, skip it
         if not is_ccinc(prim_pdg_list): continue
