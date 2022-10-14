@@ -1,11 +1,12 @@
 ## Needs to have ROOT.TG4Event loaded to work
 import ROOT
+from ROOT import TLorentzVector
 import math
 import sys
 from glob import glob
 
 ## Make ROOT non-hideous
-# ROOT.gROOT.SetBatch(1)
+ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetLineWidth(3)
 ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetOptTitle(0)
@@ -22,8 +23,18 @@ ROOT.gStyle.SetNdivisions(505, "XY")
 ROOT.gStyle.SetPalette(ROOT.kInvertedDarkBodyRadiator)
 ROOT.gStyle.SetNumberContours(255)
 
+## Just some nicer colours
+## From: https://personal.sron.nl/~pault/#sec:qualitative
+kkBlue    = ROOT.TColor(9000,   0/255., 119/255., 187/255.)
+kkCyan    = ROOT.TColor(9001,  51/255., 187/255., 238/255.)
+kkTeal    = ROOT.TColor(9002,   0/255., 153/255., 136/255.)
+kkOrange  = ROOT.TColor(9003, 238/255., 119/255.,  51/255.)
+kkRed     = ROOT.TColor(9004, 204/255.,  51/255.,  17/255.)
+kkMagenta = ROOT.TColor(9005, 238/255.,  51/255., 119/255.)
+kkGray    = ROOT.TColor(9006, 187/255., 187/255., 187/255.)
+
 ## Pop up a canvas
-can = ROOT.TCanvas("can", "can", 800, 800)
+can = ROOT.TCanvas("can", "can", 1000, 800)
 can .cd()
 
 ## Is the position within the 2x2 active volume?
@@ -35,32 +46,29 @@ def is_2x2_contained(pos):
 
 
 ## We want to ignore all hits produced by neutrons or their daughters
-## So, make a list of all true trajectories that are neutrons or their descendants 
+## So, make a set of all true trajectories that are neutrons or their descendants 
 def get_neutron_and_daughter_ids(event):
     
-    neutronIDs  = []
-    daughterIDs = []
+    neutrons  = set()
+    daughters = set()
     
     for traj in event.Trajectories:
-        this_pdg = traj.GetPDGCode()
-        this_id  = traj.GetTrackId()
-        this_par = traj.GetParentId()
         
-        if this_pdg == 2112:
-            neutronIDs .append(this_id)
+        if traj.GetPDGCode() == 2112:
+            neutrons .add(traj.GetTrackId())
             continue
-        
-        if this_par in neutronIDs + daughterIDs:
-            daughterIDs .append(this_id)
+        par_id = traj.GetParentId()
+        if par_id in neutrons or par_id in daughters:
+            daughters .add(traj.GetTrackId())
 
-    return neutronIDs + daughterIDs
+    return neutrons.union(daughters)
 
 
-## Get a list of trajectory IDs with total energy < 10 MeV
+## Get a set of trajectory IDs with total energy < 10 MeV
 ## This is a semi-arbitrary cut-off to ignore delta rays and
 ## other low-energy stuff that leaks out of the detector
 def get_low_energy_ids(event):
-    return [x.GetTrackId() for x in event.Trajectories if x.GetInitialMomentum().E() < 10]
+    return set(x.GetTrackId() for x in event.Trajectories if x.GetInitialMomentum().E() < 10)
 
 
 ## This is an extremely simple signal selection
@@ -188,10 +196,10 @@ def get_neutrino_4mom(groo_event):
 
         ## Kindly redirect any complaints about this line to /dev/null
         ## edep-sim uses MeV, gRooTracker uses GeV...
-        return ROOT.TLorentzVector(groo_event.StdHepP4[p*4 + 0]*1000,
-                                   groo_event.StdHepP4[p*4 + 1]*1000,
-                                   groo_event.StdHepP4[p*4 + 2]*1000,
-                                   groo_event.StdHepP4[p*4 + 3]*1000)
+        return TLorentzVector(groo_event.StdHepP4[p*4 + 0]*1000,
+                              groo_event.StdHepP4[p*4 + 1]*1000,
+                              groo_event.StdHepP4[p*4 + 2]*1000,
+                              groo_event.StdHepP4[p*4 + 3]*1000)
     ## Should never happen...
     return None
         
@@ -213,11 +221,11 @@ def test_containment(infilelist):
     
     ## Set up histograms
     q2_all = ROOT.TH1D("q2_all",
-                       "q2_all;Q^2 (GeV); N. events",
+                       "q2_all;Q^{2} (GeV); N. events",
                        25, 0, 5)
     
     q2_cont = ROOT.TH1D("q2_cont",
-                        "q2_cont;Q^2 (GeV); Containment fraction",
+                        "q2_cont;Q^{2} (GeV); Containment fraction",
                         25, 0, 5)
 
     pi_energy_smearing = ROOT.TH2D("pi_energy_smearing",
@@ -229,6 +237,8 @@ def test_containment(infilelist):
     for evt in range(nevts):
 
         if evt%(int(nevts/10)) == 0 and evt != 0: print("Processed event:", evt)
+
+        if evt > 1000: break
         
         edep_tree.GetEntry(evt)
         groo_tree.GetEntry(evt)
@@ -297,17 +307,32 @@ def test_containment(infilelist):
     q2_cont.Divide(q2_all)
     
     ## Make some pretty plots
+    can.cd()
     q2_all .Draw()
+    q2_all .SetMinimum(0)
+    q2_all .SetLineColor(9000)
+    q2_all .SetLineWidth(3)
+    ROOT.gPad.SetRightMargin(0.02)
+    ROOT.gPad.SetTopMargin(0.02)
+    ROOT.gPad.SetLeftMargin(0.15)
+    ROOT.gPad.SetBottomMargin(0.14)
+    ROOT.gPad.RedrawAxis()
     ROOT.gPad.Update()
-    input("Pause...")
+    can .SaveAs("example_ccinc_q2.png")
     
     q2_cont .Draw()
+    q2_cont .SetLineWidth(3)
+    q2_cont .SetMinimum(0)
+    q2_cont .SetLineColor(9000)
     ROOT.gPad.Update()
-    input("Pause...")
+    can .SaveAs("example_ccinc_q2_2x2cont.png")
     
     pi_energy_smearing.Draw("COLZ")
+    pi_energy_smearing.GetZaxis().RotateTitle(1)
+    ROOT.gPad.SetRightMargin(0.18)
+    ROOT.gPad.RedrawAxis()
     ROOT.gPad.Update()
-    input("Pause...")   
+    can .SaveAs("example_pi_erec_2x2cont.png")
     
     return
 
