@@ -93,7 +93,9 @@ E.g., to get a single FHC file, generated in the same way as described in the ex
 ```
 wget https://portal.nersc.gov/project/dune/data/2x2/simulation/edepsim/NuMI_FHC_CHERRY/Merged2x2MINERvA_noRock_NuMI_FHC_CHERRY_5E17_000_EDEPSIM.root	
 ```
-200 files are provided in both FHC and RHC, corresponding to 1E20 (equivalent to ~1 month of NuMI running)
+200 files are currently provided in both FHC and RHC, corresponding to 1E20 (equivalent to ~1 month of NuMI running), although it's very easy to produce more on request.
+
+Also note that if you have a NERSC account, you can copy files much more easily to another location. All files publicly accessible under: `https://github.com/wilkinson-nu/2x2_truth_studies.git` can be found under `/project/projectdirs/dune/www/data/2x2/` from a NERSC machine.
 
 ## Analyzing the edep-sim output files
 
@@ -111,4 +113,15 @@ An example script for analyzing the edep-sim output is given: `example_analysis.
 ```
 singularity exec images/2x2_sim_prod.sif python3 example_analysis.py <input_edepsim_file.root>
 ```
-Note that whilst you can get some mileage out of looking at the edep-sim output file with a TBrowser, you will run into issues because the entries are saved in custom `TG4Event` objects. The (Py)ROOT version in the container picks up on the necessary objects from edep-sim to understand these.
+Note that whilst you can get some mileage out of looking at the edep-sim output file with a TBrowser, you will run into issues because the entries are saved in custom `TG4Event` objects. The (Py)ROOT version in the container picks up on the necessary objects from edep-sim to understand these. It may be possible to access some or al of the objects through PyROOT without the edep-sim library... but the example script uses class-specific getters so requires it.
+
+The source code for `example_analysis.py` is heavily commented, and hopefully touches on most of the types of information one might need. In brief, it makes a CC-inclusive selection, looks for the hadronic system to be contained within the 2x2 active volume, and requires (very roughly) that the muon exits out the back of MINERvA, and therefore could be tagged as a muon.
+
+The total number of events in the files passed to `example_analysis.py` is shown as a function of true Q<sup>2</sup> in `plots/example_ccinc_q2.png`.
+![plots/example_ccinc_q2.png](plots/example_ccinc_q2.png)
+
+The fraction of CC-inclusive events contained is shown as a function of true Q<sup>2</sup> in `plots/example_ccinc_q2_2x2cont.png`.
+![plots/example_ccinc_q2_2x2cont.png](plots/example_ccinc_q2_2x2cont.png)
+
+Finally, the relationship between the total energy deposited in the detector and true kinetic energy is shown for all charged pions in the CC-incusive sample in `plots/example_pi_erec_2x2cont.png`
+![plots/example_pi_erec_2x2cont.png](plots/example_pi_erec_2x2cont.png)
