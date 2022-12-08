@@ -3,9 +3,6 @@ From: images/root_v6.14.06_pythia6.sif
 
 %files
 
-    ## Temporary edep-sim patch
-    images/EDepSimRootGeometryManager.patch /opt/generators
-
 %post
 
     ## Update the compiler
@@ -112,13 +109,10 @@ From: images/root_v6.14.06_pythia6.sif
 
     source ${GEN_DIR}/geant4/install/bin/geant4.sh
 
-    ## Now edep-sim... this puts it in /usr/local, which is fine I guess?
+    ## Now edep-sim, use a fork with some specific changes in
     cd ${GEN_DIR}    
-    git clone https://github.com/ClarkMcGrew/edep-sim.git
+    git clone https://github.com/wilkinson-nu/edep-sim.git
     
-    ## Add patch
-    patch edep-sim/src/EDepSimRootGeometryManager.cc /opt/generators/EDepSimRootGeometryManager.patch
-
     cd ${GEN_DIR}/edep-sim/build
     mkdir ../install
     cmake -DCMAKE_INSTALL_PREFIX=../install ../
