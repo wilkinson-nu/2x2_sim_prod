@@ -16,6 +16,10 @@ From: centos:7
     yum -y install devtoolset-7
     scl enable devtoolset-7 bash
 
+    yum -y install file
+    yum -y install tar
+    yum -y install bzip2 
+
     BUILD_SW="gcc gcc-c++ gcc-gfortran cmake3 make imake autoconf automake pkgconfig libtool"
     RETREVAL_SW="git wget subversion openssh-clients openssl-devel"
 
